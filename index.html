@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Indian Luxury Jewelry 3D Viewer</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Playfair+Display:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #111;
+            font-family: 'Inter', sans-serif;
+            color: #fff;
+        }
+
+        #canvas-container {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            z-index: 1;
+        }
+
+        #ui-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 2;
+            pointer-events: none; /* Let clicks pass through to canvas by default */
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            padding: 40px;
+            box-sizing: border-box;
+        }
+
+        .pointer-events-auto {
+            pointer-events: auto;
+        }
+
+        /* Header */
+        header h1 {
+            font-family: 'Playfair Display', serif;
+            font-size: 2rem;
+            margin: 0;
+            letter-spacing: 2px;
+            color: #d4af37; /* Premium Gold */
+            text-transform: uppercase;
+        }
+
+        /* Trust Signals */
+        .trust-signals {
+            position: absolute;
+            top: 40px;
+            right: 40px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .badge {
+            background-color: rgba(10, 10, 10, 0.8);
+            border: 1px solid #d4af37;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            color: #d4af37;
+        }
+
+        /* Product Card */
+        .product-card {
+            position: absolute;
+            bottom: 40px;
+            left: 40px;
+            width: 350px;
+            background: rgba(20, 20, 20, 0.4);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 8px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+        }
+
+        .product-card h2 {
+            font-family: 'Playfair Display', serif;
+            font-size: 1.8rem;
+            margin: 0 0 10px 0;
+            color: #fff;
+        }
+
+        .product-card p.desc {
+            font-size: 0.85rem;
+            color: #ccc;
+            margin-bottom: 20px;
+            line-height: 1.5;
+        }
+
+        .price-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 25px;
+            font-size: 0.85rem;
+        }
+
+        .price-table td {
+            padding: 6px 0;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        .price-table tr:last-child td {
+            border-bottom: none;
+            padding-top: 15px;
+            font-weight: 600;
+            font-size: 1rem;
+            color: #d4af37;
+        }
+
+        .price-table td:last-child {
+            text-align: right;
+        }
+
+        .add-to-cart {
+            width: 100%;
+            background-color: #d4af37;
+            color: #000;
+            border: none;
+            padding: 15px;
+            font-family: 'Inter', sans-serif;
+            font-size: 1rem;
+            font-weight: 600;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+        }
+
+        .add-to-cart:hover {
+            background-color: #f3d56a;
+            box-shadow: 0 0 15px rgba(212, 175, 55, 0.5);
+        }
+
+        /* Material Toggles */
+        .material-toggles {
+            position: absolute;
+            bottom: 40px;
+            right: 40px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .toggle-btn {
+            background: rgba(10, 10, 10, 0.6);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: #fff;
+            padding: 10px 20px;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.8rem;
+            letter-spacing: 1px;
+            text-transform: uppercase;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            border-radius: 4px;
+            text-align: right;
+            pointer-events: auto;
+        }
+
+        .toggle-btn:hover, .toggle-btn.active {
+            border-color: #d4af37;
+            color: #d4af37;
+            background: rgba(20, 20, 20, 0.8);
+        }
+
+        /* Loading Overlay */
+        #loading-overlay {
+            position: absolute;
+            top: 0; left: 0; width: 100%; height: 100%;
+            background: #111;
+            z-index: 10;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            font-family: 'Playfair Display', serif;
+            color: #d4af37;
+            font-size: 1.5rem;
+            transition: opacity 1s ease;
+        }
+    </style>
+    <!-- Import Maps for Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.165.0/build/three.module.js",
+                "three/addons/": "https://unpkg.com/three@0.165.0/examples/jsm/"
+            }
+        }
+    </script>
+</head>
+<body>
+    <div id="loading-overlay">Initializing Experience...</div>
+    <div id="canvas-container"></div>
+    <div id="ui-overlay">
+        <header>
+            <h1>Aura Jewellers</h1>
+        </header>
+
+        <div class="trust-signals">
+            <div class="badge">BIS 916 Hallmarked</div>
+            <div class="badge">GIA Certified Diamond</div>
+        </div>
+
+        <div class="product-card pointer-events-auto">
+            <h2>Solitaire Legacy Ring</h2>
+            <p class="desc">An exquisite manifestation of luxury, featuring a flawless GIA-certified diamond set in pure hallmarked gold. Crafted for eternity.</p>
+
+            <table class="price-table">
+                <tr>
+                    <td>22K Gold (4 Grams)</td>
+                    <td>₹28,000</td>
+                </tr>
+                <tr>
+                    <td>Diamond (1.5 Carat VVS1)</td>
+                    <td>₹3,50,000</td>
+                </tr>
+                <tr>
+                    <td>Making Charges (8%)</td>
+                    <td>₹30,240</td>
+                </tr>
+                <tr>
+                    <td>GST (3%)</td>
+                    <td>₹12,247</td>
+                </tr>
+                <tr>
+                    <td>Total</td>
+                    <td>₹4,20,487</td>
+                </tr>
+            </table>
+
+            <button class="add-to-cart pointer-events-auto">Add to Cart</button>
+        </div>
+
+        <div class="material-toggles pointer-events-auto">
+            <button class="toggle-btn active" data-color="0xFFD700">22K Yellow Gold</button>
+            <button class="toggle-btn" data-color="0xB76E79">Rose Gold</button>
+            <button class="toggle-btn" data-color="0xE5E4E2">Platinum</button>
+        </div>
+    </div>
+
+    <!-- Three.js Implementation -->
+    <script type="module">
+        import * as THREE from 'three';
+        import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+        import { RGBELoader } from 'three/addons/loaders/RGBELoader.js';
+        import { EffectComposer } from 'three/addons/postprocessing/EffectComposer.js';
+        import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
+        import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
+
+        // 1. Scene Setup
+        const container = document.getElementById('canvas-container');
+        const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+        renderer.setPixelRatio(window.devicePixelRatio);
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.toneMapping = THREE.ACESFilmicToneMapping;
+        renderer.toneMappingExposure = 1.2;
+        container.appendChild(renderer.domElement);
+
+        const scene = new THREE.Scene();
+
+        const camera = new THREE.PerspectiveCamera(45, window.innerWidth / window.innerHeight, 0.1, 100);
+        camera.position.set(0, 3, 7);
+
+        const controls = new OrbitControls(camera, renderer.domElement);
+        controls.enableDamping = true;
+        controls.dampingFactor = 0.05;
+        controls.minDistance = 2;
+        controls.maxDistance = 15;
+        controls.target.set(0, 0, 0);
+
+        // 2. Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.5);
+        scene.add(ambientLight);
+
+        const dirLight = new THREE.DirectionalLight(0xffffff, 2);
+        dirLight.position.set(5, 10, 7);
+        scene.add(dirLight);
+
+        // 3. Post-Processing (Bloom)
+        const renderScene = new RenderPass(scene, camera);
+
+        // High threshold, low strength for subtle luxury glow
+        const bloomPass = new UnrealBloomPass(
+            new THREE.Vector2(window.innerWidth, window.innerHeight),
+            0.6, // strength
+            0.4, // radius
+            0.85 // threshold
+        );
+
+        const composer = new EffectComposer(renderer);
+        composer.addPass(renderScene);
+        composer.addPass(bloomPass);
+
+        // 4. Geometry and Materials
+        const ringGroup = new THREE.Group();
+        scene.add(ringGroup);
+
+        // Gold Material
+        const goldMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xFFD700,
+            metalness: 1.0,
+            roughness: 0.15,
+            clearcoat: 0.5,
+            clearcoatRoughness: 0.1,
+        });
+
+        // Diamond Material (Advanced Optical Properties)
+        const diamondMaterial = new THREE.MeshPhysicalMaterial({
+            color: 0xffffff,
+            transmission: 1.0,
+            opacity: 1.0,
+            transparent: true,
+            ior: 2.417,
+            thickness: 2.0,
+            roughness: 0.0,
+            dispersion: 1.0,
+        });
+
+        // Ring Band (Torus)
+        const bandGeometry = new THREE.TorusGeometry(1.5, 0.2, 64, 128);
+        const band = new THREE.Mesh(bandGeometry, goldMaterial);
+        band.rotation.x = Math.PI / 2;
+        ringGroup.add(band);
+
+        // Diamond (High-segment Icosahedron for facets)
+        const diamondGeometry = new THREE.IcosahedronGeometry(0.5, 1);
+        const diamond = new THREE.Mesh(diamondGeometry, diamondMaterial);
+        diamond.position.y = 1.6;
+        ringGroup.add(diamond);
+
+        // Prongs
+        const prongGeometry = new THREE.CylinderGeometry(0.04, 0.03, 0.6, 16);
+        for (let i = 0; i < 4; i++) {
+            const prong = new THREE.Mesh(prongGeometry, goldMaterial);
+            const angle = (i * Math.PI) / 2 + Math.PI / 4;
+            prong.position.set(Math.cos(angle) * 0.35, 1.45, Math.sin(angle) * 0.35);
+
+            // Adjust prong orientation to point towards the diamond center
+            const target = new THREE.Vector3(0, 1.6, 0);
+            prong.lookAt(target);
+            prong.rotateX(Math.PI / 2);
+            ringGroup.add(prong);
+        }
+
+        // 5. Environment Map (RGBELoader)
+        const rgbeLoader = new RGBELoader();
+        // Since mrdoob github master occasionally removes examples or they 404, we'll try a different common one if royal_esplanade fails
+        rgbeLoader.setPath('https://raw.githubusercontent.com/mrdoob/three.js/r160/examples/textures/equirectangular/');
+        rgbeLoader.load('royal_esplanade_1k.hdr', function(texture) {
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            scene.environment = texture;
+            scene.background = texture;
+
+            // Add a slight blur to background
+            scene.backgroundBlurriness = 0.2;
+            scene.backgroundIntensity = 0.5; // Slightly dim the background to pop the ring
+
+            // Hide loading overlay
+            const loadingOverlay = document.getElementById('loading-overlay');
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 1000);
+        }, undefined, function(error) {
+            console.error('Error loading HDR:', error);
+            // Fallback: hide loading overlay even if HDR fails so user isn't stuck
+            const loadingOverlay = document.getElementById('loading-overlay');
+            loadingOverlay.style.opacity = '0';
+            setTimeout(() => {
+                loadingOverlay.style.display = 'none';
+            }, 1000);
+        });
+
+        // 6. Window Resizing
+        window.addEventListener('resize', onWindowResize, false);
+        function onWindowResize() {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+            composer.setSize(window.innerWidth, window.innerHeight);
+        }
+
+        // 7. Interactivity (Material Toggling)
+        const buttons = document.querySelectorAll('.toggle-btn');
+        buttons.forEach(button => {
+            button.addEventListener('click', (e) => {
+                // Update active state
+                buttons.forEach(b => b.classList.remove('active'));
+                e.target.classList.add('active');
+
+                // Change material color
+                const colorHex = e.target.getAttribute('data-color');
+                goldMaterial.color.setHex(parseInt(colorHex));
+            });
+        });
+
+        // 8. Animation Loop
+        const clock = new THREE.Clock();
+        function animate() {
+            requestAnimationFrame(animate);
+
+            const delta = clock.getDelta();
+
+            // Auto-rotate
+            ringGroup.rotation.y += 0.5 * delta;
+
+            controls.update();
+
+            // Use composer for bloom
+            composer.render();
+        }
+
+        animate();
+    </script>
+</body>
+</html>
