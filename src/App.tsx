@@ -3,11 +3,12 @@ import { AuthProvider } from './contexts/AuthContext';
 import MainLayout from './layouts/MainLayout';
 import ProtectedRoute from './components/ProtectedRoute';
 
-// Placeholders for pages
+// Pages
 import Home from './pages/Home';
 import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
+import Profile from './pages/Profile';
 
 function App() {
   return (
@@ -22,7 +23,8 @@ function App() {
             {/* Protected Routes */}
             <Route element={<ProtectedRoute />}>
               <Route path="/dashboard" element={<Dashboard />} />
-              {/* Other protected routes will go here (profile, chat, etc) */}
+              <Route path="/profile" element={<Profile />} />
+              {/* Other protected routes will go here (chat, discovery, rooms, etc) */}
             </Route>
           </Route>
         </Routes>
