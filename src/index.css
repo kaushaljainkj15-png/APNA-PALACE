@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-black: #000000;
+  --color-brand-graphite: #080808;
+  --color-brand-dark: #120000;
+  --color-brand-darkred: #1a0000;
+  --color-brand-red: #8B0000; /* Deep red accent */
+  --color-brand-red-light: #FF0000;
+  --color-brand-gray: #333333;
+}
+
+@layer base {
+  body {
+    @apply bg-brand-black text-white antialiased selection:bg-brand-red selection:text-white;
+  }
+}
+
+/* Glassmorphism utility */
+@layer utilities {
+  .glass {
+    @apply bg-brand-graphite/40 backdrop-blur-md border border-white/10;
+  }
+  .glass-card {
+    @apply bg-brand-darkred/40 backdrop-blur-lg border border-brand-red/20 shadow-[0_4px_30px_rgba(139,0,0,0.1)];
+  }
+  .text-glow {
+    text-shadow: 0 0 10px rgba(255,0,0,0.5);
+  }
+}
